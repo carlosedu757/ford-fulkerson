@@ -1,70 +1,70 @@
 from collections import defaultdict
 
-class Graph:
+class Grafo:
     def __init__(self):
-        self.graph = defaultdict(dict)
+        self.grafo = defaultdict(dict)
 
-    def add_edge(self, u, v, capacity):
-        self.graph[u][v] = capacity
-        self.graph[v][u] = 0
+    def add_edge(self, u, v, capacidade):
+        self.grafo[u][v] = capacidade
+        self.grafo[v][u] = 0
 
-    def ford_fulkerson(self, source, sink):
-        def bfs(s, t, parent):
-            visited = [False] * len(self.graph)
-            queue = []
-            queue.append(s)
-            visited[s] = True
+    def ford_fulkerson(self, fonte, sorvedouro):
+        def bfs(s, t, pai):
+            visitado = [False] * len(self.grafo)
+            fila = []
+            fila.append(s)
+            visitado[s] = True
 
-            while queue:
-                u = queue.pop(0)
-                for v, capacity in self.graph[u].items():
-                    if visited[v] == False and capacity > 0:
-                        queue.append(v)
-                        visited[v] = True
-                        parent[v] = u
-            return visited[t]
+            while fila:
+                u = fila.pop(0)
+                for v, capacidade in self.grafo[u].items():
+                    if visitado[v] == False and capacidade > 0:
+                        fila.append(v)
+                        visitado[v] = True
+                        pai[v] = u
+            return visitado[t]
 
-        parent = [-1] * len(self.graph)
-        max_flow = 0
+        pai = [-1] * len(self.grafo)
+        fluxo_max = 0
 
-        while bfs(source, sink, parent):
-            path_flow = float("inf")
-            s = sink
-            while s != source:
-                path_flow = min(path_flow, self.graph[parent[s]][s])
-                s = parent[s]
+        while bfs(fonte, sorvedouro, pai):
+            caminho_fluxo = float("inf")
+            s = sorvedouro
+            while s != fonte:
+                caminho_fluxo = min(caminho_fluxo, self.grafo[pai[s]][s])
+                s = pai[s]
 
-            max_flow += path_flow
-            v = sink
-            while v != source:
-                u = parent[v]
-                self.graph[u][v] -= path_flow
-                self.graph[v][u] += path_flow
-                v = parent[v]
+            fluxo_max += caminho_fluxo
+            v = sorvedouro
+            while v != fonte:
+                u = pai[v]
+                self.grafo[u][v] -= caminho_fluxo
+                self.grafo[v][u] += caminho_fluxo
+                v = pai[v]
 
-        return max_flow
+        return fluxo_max
 
-def read_graph_from_file(file_name):
+def read_grafo_from_file(file_name):
     with open(file_name, 'r') as file:
         V = int(file.readline())
         A = int(file.readline())
-        graph = Graph()
+        grafo = Grafo()
         for _ in range(A):
-            u, v, capacity = map(float, file.readline().split())
-            graph.add_edge(int(u), int(v), capacity)
-        return graph
+            u, v, capacidade = map(float, file.readline().split())
+            grafo.add_edge(int(u), int(v), capacidade)
+        return grafo
 
-def export_max_flow_graph(graph, max_flow, output_file):
+def export_fluxo_max_grafo(grafo, fluxo_max, output_file):
     with open(output_file, 'w') as file:
-        for u in graph.graph:
-            for v, capacity in graph.graph[u].items():
-                file.write(f"{u} {v} {capacity}\n")
+        for u in grafo.grafo:
+            for v, capacidade in grafo.grafo[u].items():
+                file.write(f"{u} {v} {capacidade}\n")
 
 if __name__ == "__main__":
-    file_name = "graph.txt"  # Substitua pelo nome do seu arquivo
-    graph = read_graph_from_file(file_name)
-    source = int(input("Digite o vértice fonte: "))
-    sink = int(input("Digite o vértice sorvedouro: "))
-    max_flow = graph.ford_fulkerson(source, sink)
-    export_max_flow_graph(graph, max_flow, 'saida.txt')
-    print(f"\nMax Flow: {max_flow}")
+    file_name = "grafo.txt"  # Substitua pelo nome do seu arquivo
+    grafo = read_grafo_from_file(file_name)
+    fonte = int(input("Digite o vértice fonte: "))
+    sorvedouro = int(input("Digite o vértice sorvedouro: "))
+    fluxo_max = grafo.ford_fulkerson(fonte, sorvedouro)
+    export_fluxo_max_grafo(grafo, fluxo_max, 'saida.txt')
+    print(f"\nMax Flow: {fluxo_max}")
