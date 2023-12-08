@@ -1,70 +1,76 @@
 from collections import defaultdict
+from collections import deque
 
-class Grafo:
-    def __init__(self):
-        self.grafo = defaultdict(dict)
+inf = float('inf')
 
-    def add_edge(self, u, v, capacidade):
-        self.grafo[u][v] = capacidade
-        self.grafo[v][u] = 0
+def bfsAug(G, H, s, t, f):
+	P, Q, F = {s: None}, deque([s]), {s: inf}	# Árvore, fila, rótulo de fluxo
+	def label(inc):								# Aumento de fluxo em vindo de u?
+		if v in P or inc <= 0: return 			# Visto? Inalcançável? Ignorar
+		F[v], P[v] = min(F[u], inc), u 			# Fluxo máximo aqui? De onde?
+		Q.append(v)								# Descoberto -- visitar depois
+	while Q:									# Descoberto, não visitado
+		u = Q.popleft()							# Pegar um (FIFO)
+		if u == t: return P, F[t]				# Chegou em t? Caminho de aumento!
+		try:
+			for v in G[u]: label(G[u][v] - f[u,v])	# Rótulo ao longo das arestas de saída
+			for v in H[u]: label(f[v,u])			# Rótulo ao longo das arestas de entrada
+		except Exception as e:
+			raise e
+	return None, 0	
 
-    def ford_fulkerson(self, fonte, sorvedouro):
-        def bfs(s, t, pai):
-            visitado = [False] * len(self.grafo)
-            fila = []
-            fila.append(s)
-            visitado[s] = True
+def fordFulkerson(G, s, t, aug=bfsAug):	# Fluxo máximo de s para t
+	H, f = tr(G), defaultdict(int)			# Transposta e fluxo
+	while True:								# Enquanto pudermos melhorar as coisas
+		P, c = aug(G, H, s, t, f)			# Caminho de aumento e capacidade/folga
+		#print('p', P, 'c', c)
+		if c == 0: return f 				# Nenhum caminho de aumento encontrado? Feito!
+		u = t 								# Começar o aumento
+		while u != s:						# Retroceder até s
+			u, v = P[u], u 					# Avançar um passo
+			if v in G[u]:	f[u,v] += c 	# Aresta direta? Adicionar folga
+			else:			f[v,u] -= c 	# Aresta inversa? Cancelar folga
+			
+def tr(G):						# Transposta (arestas reversas de) G
+	GT = {}
+	for u in G: GT[u] = set()	# Pegar todos os nós lá
+	for u in G:
+		for v in G[u]:
+			GT[v].add(u)		# Adicionar todas as arestas reversas
+	return GT
+	
+def ler_grafo_de_arquivo(nome_arquivo):
+    with open(nome_arquivo, 'r') as file:
+        linhas = file.readlines()
 
-            while fila:
-                u = fila.pop(0)
-                for v, capacidade in self.grafo[u].items():
-                    if visitado[v] == False and capacidade > 0:
-                        fila.append(v)
-                        visitado[v] = True
-                        pai[v] = u
-            return visitado[t]
+        num_vertices = int(linhas[0])
+        num_arcos = int(linhas[1])
 
-        pai = [-1] * len(self.grafo)
-        fluxo_max = 0
+        grafo = {str(i): {} for i in range(num_vertices)}
 
-        while bfs(fonte, sorvedouro, pai):
-            caminho_fluxo = float("inf")
-            s = sorvedouro
-            while s != fonte:
-                caminho_fluxo = min(caminho_fluxo, self.grafo[pai[s]][s])
-                s = pai[s]
+        for linha in linhas[2:]:
+            origem, destino, capacidade = linha.split()
+            origem, destino = int(origem), int(destino)
+            capacidade = float(capacidade)
 
-            fluxo_max += caminho_fluxo
-            v = sorvedouro
-            while v != fonte:
-                u = pai[v]
-                self.grafo[u][v] -= caminho_fluxo
-                self.grafo[v][u] += caminho_fluxo
-                v = pai[v]
+            grafo[str(origem)][str(destino)] = capacidade
 
-        return fluxo_max
+        return grafo	
 
-def read_grafo_from_file(file_name):
-    with open(file_name, 'r') as file:
-        V = int(file.readline())
-        A = int(file.readline())
-        grafo = Grafo()
-        for _ in range(A):
-            u, v, capacidade = map(float, file.readline().split())
-            grafo.add_edge(int(u), int(v), capacidade)
-        return grafo
-
-def export_fluxo_max_grafo(grafo, fluxo_max, output_file):
-    with open(output_file, 'w') as file:
-        for u in grafo.grafo:
-            for v, capacidade in grafo.grafo[u].items():
-                file.write(f"{u} {v} {capacidade}\n")
-
-if __name__ == "__main__":
-    file_name = "grafo.txt"  # Substitua pelo nome do seu arquivo
-    grafo = read_grafo_from_file(file_name)
-    fonte = int(input("Digite o vértice fonte: "))
-    sorvedouro = int(input("Digite o vértice sorvedouro: "))
-    fluxo_max = grafo.ford_fulkerson(fonte, sorvedouro)
-    export_fluxo_max_grafo(grafo, fluxo_max, 'saida.txt')
-    print(f"\nMax Flow: {fluxo_max}")
+if __name__ == "__main__": 
+    grafo = ler_grafo_de_arquivo('arcos.txt')
+    
+    fonte = input("Digite o nó de origem (fonte): ")
+    sorvedouro = input("Digite o nó de destino (sorvedouro): ")
+    
+    fluxo_maximo = fordFulkerson(grafo, fonte, sorvedouro)
+    
+    valor_maximo = 0
+    with open('saida.txt', 'w') as f:
+    	for chave, valor in fluxo_maximo.items():
+    		string = str(chave) + ' ' + str(valor) + '\n'
+    		f.write(string)
+    		if((str(chave)[7] == sorvedouro)):
+        		valor_maximo += valor
+    
+    print('Fluxo Total do Grafo:', valor_maximo)
